@@ -12,7 +12,7 @@ test('Portions, configuration acknowledgement, failed storage and command snapsh
   const app=createApp({dbPath:':memory:',now:()=>clock});
   await new Promise(r=>app.server.listen(0,'127.0.0.1',r));
   t.after(async()=>{await new Promise(r=>app.server.close(r));app.close();});
-  const base=`http://127.0.0.1:${app.server.address().port}/api`;
+  const base=`https://app.sunifactory.com/api`;
   let cookie;
   async function request(route,method='GET',body,deviceToken){
     const r=await fetch(base+route,{method,headers:{'Content-Type':'application/json','X-Requested-With':'PawMeal',...(cookie?{Cookie:cookie}:{}),...(deviceToken?{Authorization:'Bearer '+deviceToken}:{})},...(body?{body:JSON.stringify(body)}:{})});
@@ -92,7 +92,7 @@ test('10-second sweep command is finite, acknowledged once, and retains tested e
   const app=createApp({dbPath:':memory:'});
   await new Promise(r=>app.server.listen(0,'127.0.0.1',r));
   t.after(async()=>{await new Promise(r=>app.server.close(r));app.close();});
-  const base=`http://127.0.0.1:${app.server.address().port}/api`;
+  const base=`https://app.sunifactory.com/api`;
   let cookie='',token='';
   async function call(route,body,method='POST',device=false){
     const r=await fetch(base+route,{method,headers:{'Content-Type':'application/json','X-Requested-With':'PawMeal',Cookie:cookie,...(device?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})});
@@ -126,7 +126,7 @@ test('Existing database migration preserves feeding duration and survives restar
     const app=createApp({dbPath});
     try{
       await new Promise(r=>app.server.listen(0,'127.0.0.1',r));
-      const r=await fetch(`http://127.0.0.1:${app.server.address().port}/api/device/poll`,{method:'POST',headers:{Authorization:'Bearer '+secret,'Content-Type':'application/json'},body:'{"protocol":4}'});
+      const r=await fetch(`https://app.sunifactory.com/api/device/poll`,{method:'POST',headers:{Authorization:'Bearer '+secret,'Content-Type':'application/json'},body:'{"protocol":4}'});
       const {config}=await r.json();
       assert.deepEqual(config,{version:3,servo_mode:'timed_sweep',portions:1,portion_ms:725,run_ms:725,closed_angle:0,open_angle:360,move_ms:500});
     }finally{await new Promise(r=>app.server.close(r));app.close();}

@@ -5,9 +5,9 @@ import { createApp } from '../server.mjs';
 test('Account isolation, device commands, expiry, schedules and revocation',async t=>{
   let clock=Date.parse('2026-10-04T00:00:00Z');
   const app=createApp({dbPath:':memory:',now:()=>clock});
-  await new Promise(r=>app.server.listen(0,'127.0.0.1',r));
+  await new Promise(r=>app.server.listen(0,'app.sunifactory.com',r));
   t.after(async()=>{await new Promise(r=>app.server.close(r));app.close();});
-  const base=`http://127.0.0.1:${app.server.address().port}`;
+  const base=`https://app.sunifactory.com/`;
   const configs=new Map();
   async function req(p,{method='GET',body,cookie,token,headers={}}={}){
     if(p==='/device/poll'&&body===undefined)body={protocol:4,applied_config:configs.get(token)};
