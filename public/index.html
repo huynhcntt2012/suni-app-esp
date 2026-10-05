@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#173d35"><title>PawMeal · Máy cho ăn thú cưng</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<aside class="sidebar"><a class="brand" href="/">◉ <span>PawMeal<small>CHĂM SÓC MỖI NGÀY</small></span></a><div class="nav active">▦ &nbsp; Máy cho ăn</div><div class="side-note">Một nơi quản lý<br>mọi bữa ăn.<hr><span>Giờ Việt Nam · UTC+7</span></div><div id="account"></div></aside>
+<main>
+<header><div><p class="eyebrow">KHÔNG GIAN CỦA THÚ CƯNG</p><h1>Bữa ăn đúng giờ.</h1><p class="sub">Theo dõi thiết bị và chăm sóc những người bạn nhỏ.</p></div><button id="add-device" hidden>+ Thêm thiết bị</button></header>
+<section id="auth" class="auth panel" hidden><div><span class="badge">CHÀO MỪNG ĐẾN PAWMEAL</span><h2>Mỗi bữa ăn,<br>thêm an tâm.</h2><p>Đăng nhập để kết nối máy cho ăn, đặt lịch và quản lý thiết bị của bạn.</p><div class="auth-detail">01 &nbsp; Kết nối máy cho ăn<br>02 &nbsp; Cài lịch theo thói quen<br>03 &nbsp; Theo dõi mỗi lần hoạt động</div></div><form id="auth-form"><h2 id="auth-title">Đăng nhập</h2><label>Email<input name="email" type="email" autocomplete="email" placeholder="ban@example.com" required maxlength="200"></label><label>Mật khẩu<input name="password" type="password" autocomplete="current-password" minlength="10" maxlength="128" placeholder="Tối thiểu 10 ký tự" required></label><button type="submit" id="auth-submit">Đăng nhập</button><button type="button" class="text-btn" id="auth-switch">Chưa có tài khoản? Đăng ký</button><p id="auth-error" role="alert"></p></form></section>
+<div id="dashboard" hidden>
+<section class="stats"><article><span>Tổng thiết bị</span><strong id="total">0</strong><small>Máy cho ăn của bạn</small></article><article><span>Đang kết nối</span><strong id="online">0</strong><small>Cập nhật mỗi 5 giây</small></article><article><span>Lịch đang bật</span><strong id="schedules-total">0</strong><small>Theo múi giờ Việt Nam</small></article></section>
+<section><div class="section-title"><h2>Thiết bị của bạn</h2><span id="updated">Đang cập nhật…</span></div><div id="devices" class="devices"></div></section>
+<section class="panel history"><div class="section-title"><div><p class="eyebrow">THEO DÕI HOẠT ĐỘNG</p><h2>Nhật ký cho ăn</h2></div><span>50 lần gần nhất</span></div><div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Thiết bị</th><th>Nguồn</th><th>Số lượng</th><th>Thời gian lệnh</th><th>Trạng thái</th></tr></thead><tbody id="events"></tbody></table></div><p class="footnote">“Đã hoàn tất” là phản hồi từ firmware. Thời gian lệnh chưa gồm đoạn về A. Chưa có cảm biến xác nhận vị trí hay lượng thức ăn đã rơi.</p></section>
+</div>
+<footer>PawMeal / ESP32 <span>Đều đặn mỗi ngày, dù bạn bận rộn.</span></footer>
+</main>
+<dialog id="modal"><div class="modal-head"><h2 id="modal-title"></h2><button class="icon-btn" id="close-modal" aria-label="Đóng">×</button></div><div id="modal-body"></div><p id="modal-error" role="alert"></p></dialog>
+<div id="toast" role="status" hidden></div>
+</body></html>

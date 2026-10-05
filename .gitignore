@@ -1,0 +1,5 @@
+data/
+firmware/PetFeeder/config.h
+firmware/test/config.h
+node_modules/
+*.log

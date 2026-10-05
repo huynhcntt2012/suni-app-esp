@@ -1,0 +1,4 @@
+#pragma once
+const char* WIFI_SSID = "YOUR_2_4_GHZ_WIFI";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+#define OTA_PASSWORD "CHANGE_ME_USE_A_PRIVATE_PASSWORD"
