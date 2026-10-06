@@ -96,7 +96,7 @@ export function createApp({ dbPath = path.join(root, 'data', 'feeder.sqlite'), n
     const send = (status, data) => { res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}); res.end(JSON.stringify(data)); };
     try {
       res.setHeader('X-Content-Type-Options','nosniff');
-      res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+      res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self' https://static.cloudflareinsights.com; connect-src 'self' https://cloudflareinsights.com; img-src 'self' data: https:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
       const url=new URL(req.url,'http://localhost'), p=url.pathname, method=req.method;
       if (!p.startsWith('/api/')) {
         const files={'/':['index.html','text/html; charset=utf-8'],'/app.js':['app.js','text/javascript; charset=utf-8'],'/style.css':['style.css','text/css; charset=utf-8']};

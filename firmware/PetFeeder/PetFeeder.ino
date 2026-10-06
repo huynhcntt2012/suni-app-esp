@@ -49,23 +49,23 @@ bool validPositionSettings(JsonObject c) {
   return total<=60000 && c["run_ms"].as<int>()==total;
 }
 
-bool validFeedConfig(JsonObject c) {
+bool validConfig(JsonObject c) {
   return c["version"].is<uint32_t>() && c["version"].as<uint32_t>()>0 && validPositionSettings(c);
 }
 
-void readFeedConfig(JsonObject c) {
+void readConfig(JsonObject c) {
   configVersion=c["version"].as<uint32_t>(); portionCount=c["portions"]; portionMs=c["portion_ms"];
   closedAngle=c["closed_angle"]; openAngle=c["open_angle"]; moveMs=c["move_ms"];
 }
 
-void writeFeedConfig(JsonObject c) {
+void writeConfig(JsonObject c) {
   c["version"]=configVersion; c["servo_mode"]="timed_sweep"; c["portions"]=portionCount; c["portion_ms"]=portionMs;
   c["closed_angle"]=closedAngle; c["open_angle"]=openAngle; c["move_ms"]=moveMs;
   c["run_ms"]=portionCount*portionMs;
 }
 
-bool applyFeedConfig(JsonObject c) {
-  if(!validFeedConfig(c)){configError="invalid";return false;}
+bool applyConfig(JsonObject c) {
+  if(!validConfig(c)){configError="invalid";return false;}
   if(configVersion==c["version"].as<uint32_t>() && portionCount==c["portions"].as<int>() && portionMs==c["portion_ms"].as<int>() &&
      closedAngle==c["closed_angle"].as<int>() && openAngle==c["open_angle"].as<int>() && moveMs==c["move_ms"].as<int>()){
     configError="";return true;
@@ -78,7 +78,7 @@ bool applyFeedConfig(JsonObject c) {
   stored["open_angle"]=c["open_angle"].as<int>(); stored["move_ms"]=c["move_ms"].as<int>();
   String json;serializeJson(stored,json);
   if(prefs.putString("sweepcfg",json)!=json.length()){configError="storage";return false;}
-  readFeedConfig(stored.as<JsonObject>());configError="";
+  readConfig(stored.as<JsonObject>());configError="";
   Serial.printf("Sweep config v%lu: %d portions, A=%d, B=%d, runtime/portion=%d ms, endpoint hold=%d ms\n",(unsigned long)configVersion,portionCount,closedAngle,openAngle,portionMs,moveMs);
   return true;
 }
@@ -108,7 +108,7 @@ void serviceOTA() {
     ArduinoOTA.onStart([]() {
       otaUpdating = true;
       // OTA runs only after returning to A; retain holding PWM.
-      Serial.println("OTA started. Feeding paused; holding endpoint A.");
+      Serial.println("OTA started. ing paused; holding endpoint A.");
     });
     ArduinoOTA.onEnd([]() {
       Serial.println("OTA complete. Rebooting...");
@@ -130,7 +130,7 @@ void serviceOTA() {
   }
   ArduinoOTA.handle();
   // An authenticated request can schedule the update for the next handle().
-  // Service it before doing a potentially blocking feeder API request.
+  // Service it before doing a potentially blocking er API request.
   ArduinoOTA.handle();
 }
 
@@ -167,7 +167,7 @@ bool saveAck(uint64_t id, const char* status) {
   return true;
 }
 
-void finishFeeding(bool success) {
+void finishing(bool success) {
   if(!setAngle(activeClosed)){ledcWrite(SERVO_PIN,0);success=false;}
   sweep.running=false;
   if(success && prefs.putString("result","completed")>0)ackStatus="completed";
@@ -180,22 +180,22 @@ void execute(JsonObject c) {
   if(!id || id<=lastCommand)return;
   // Persist before motion. An interrupted or duplicate command must never replay.
   if(!saveAck(id,"interrupted") || prefs.putULong64("last",id)==0){
-    ready=false;Serial.println("NVS error; feeding disabled until restart.");return;
+    ready=false;Serial.println("NVS error; ing disabled until restart.");return;
   }
   lastCommand=id;activeClosed=c["closed_angle"];
   motionStarted=millis();
   sweep.start(activeClosed,c["open_angle"].as<int>(),c["move_ms"].as<uint32_t>(),c["run_ms"].as<uint32_t>(),motionStarted);
   Serial.printf("Command %llu START: timed sweep A=%d B=%d, 5 units/5 ms, hold=%d ms, runtime=%d ms\n",(unsigned long long)id,activeClosed,c["open_angle"].as<int>(),c["move_ms"].as<int>(),c["run_ms"].as<int>());
-  if(!setAngle(activeClosed))finishFeeding(false);
+  if(!setAngle(activeClosed))finishing(false);
 }
 
-void tickFeeding() {
+void ticking() {
   int previous=sweep.position;
   bool wasReturning=sweep.returning;
   sweep.tick(millis());
-  if(sweep.position!=previous && !setAngle(sweep.position)){finishFeeding(false);return;}
+  if(sweep.position!=previous && !setAngle(sweep.position)){finishing(false);return;}
   if(!wasReturning && sweep.returning)Serial.println("Runtime finished; returning to A.");
-  if(!sweep.running)finishFeeding(true);
+  if(!sweep.running)finishing(true);
 }
 
 void setup() {
@@ -205,7 +205,7 @@ void setup() {
   if(!prefs.begin("pawmeal",false)){Serial.println("NVS init failed");return;}
   JsonDocument stored;
   String saved=prefs.getString("sweepcfg","");
-  if(saved.length() && !deserializeJson(stored,saved) && validFeedConfig(stored.as<JsonObject>()))readFeedConfig(stored.as<JsonObject>());
+  if(saved.length() && !deserializeJson(stored,saved) && validConfig(stored.as<JsonObject>()))readConfig(stored.as<JsonObject>());
   // After reboot close the gate, even if the previous cycle was interrupted.
   // Old continuous config is deliberately not interpreted as position settings.
   if(!setAngle(closedAngle)){Serial.println("Initial close PWM failed");return;}
@@ -221,7 +221,7 @@ void setup() {
 
 void loop() {
   // Motor deadlines run without HTTP/flash/OTA work, even if Wi-Fi drops.
-  if(sweep.running){tickFeeding();delay(2);return;}
+  if(sweep.running){ticking();delay(2);return;}
   // OTA is handled only with the gate closed.
   serviceOTA();
   if (!ready || otaUpdating) { delay(100); return; }
@@ -243,12 +243,12 @@ void loop() {
   }
   JsonDocument heartbeat;
   heartbeat["protocol"] = 4;
-  if (configVersion) writeFeedConfig(heartbeat["applied_config"].to<JsonObject>());
+  if (configVersion) writeConfig(heartbeat["applied_config"].to<JsonObject>());
   if (configError.length()) heartbeat["config_error"] = configError;
   String body; serializeJson(heartbeat, body);
   if (request("/api/device/poll", body, reply)) {
     // Only a valid persisted config permits execution.
-    if (!reply["config"].is<JsonObject>() || !applyFeedConfig(reply["config"].as<JsonObject>())) return;
+    if (!reply["config"].is<JsonObject>() || !applyConfig(reply["config"].as<JsonObject>())) return;
     if (reply["command"].is<JsonObject>()) execute(reply["command"].as<JsonObject>());
   }
 }
