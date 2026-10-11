@@ -40,6 +40,8 @@ export function createApp({ dbPath = path.join(root, 'data', 'feeder.sqlite'), n
     addColumn('devices','config_error','TEXT');
     addColumn('devices','diagnostics_json','TEXT');
     addColumn('devices','firmware_protocol','INTEGER NOT NULL DEFAULT 1');
+    addColumn('commands','error_code',"TEXT NOT NULL DEFAULT ''");
+    addColumn('commands','firmware_build',"TEXT NOT NULL DEFAULT ''");
     addColumn('commands','portions','INTEGER NOT NULL DEFAULT 1');
     if (addColumn('commands','portion_ms','INTEGER')) db.exec('UPDATE commands SET portion_ms=run_ms');
     addColumn('commands','config_version','INTEGER NOT NULL DEFAULT 0');
@@ -144,7 +146,7 @@ export function createApp({ dbPath = path.join(root, 'data', 'feeder.sqlite'), n
         if(p==='/api/device/diagnostics'&&method==='POST') {
           const {last_command_id,received_command_id,pending_ack_id,error_code,ready,result}=body;
           if(![last_command_id,received_command_id,pending_ack_id].every(v=>integer(v,0,Number.MAX_SAFE_INTEGER))||
-             !['','busy','invalid_id','invalid_command','old_id','storage'].includes(error_code)||typeof ready!=='boolean'||
+             !['','busy','invalid_id','invalid_command','old_id','storage','pwm'].includes(error_code)||typeof ready!=='boolean'||
              !['','completed','interrupted'].includes(result))throw fail('Chẩn đoán không hợp lệ');
           run('UPDATE devices SET diagnostics_json=? WHERE id=?',JSON.stringify({last_command_id,received_command_id,pending_ack_id,error_code,ready,result,updated_at:now()}),d.id);
           send(200,{ok:true});return;
@@ -172,7 +174,11 @@ export function createApp({ dbPath = path.join(root, 'data', 'feeder.sqlite'), n
         }
         if(p==='/api/device/ack'&&method==='POST') {
           if(!integer(body.id,1,Number.MAX_SAFE_INTEGER)||!['completed','interrupted'].includes(body.status)) throw fail('Phản hồi không hợp lệ');
-          run("UPDATE commands SET status=?,finished=? WHERE id=? AND device_id=? AND status IN ('delivered','unknown')",body.status,now(),body.id,d.id);
+          const errorCode=body.error_code??'', build=body.firmware_build??'';
+          if(!['','pwm','storage','reset_brownout','reset_watchdog','reset_panic','reset_power_on','reset_other'].includes(errorCode)|| (body.status==='completed'&&errorCode))throw fail('Mã lỗi không hợp lệ');
+          if(typeof build!=='string'||!/^[-a-zA-Z0-9._]{0,48}$/.test(build))throw fail('Phiên bản không hợp lệ');
+          run("UPDATE commands SET status=?,finished=?,error_code=?,firmware_build=? WHERE id=? AND device_id=? AND status IN ('delivered','unknown')",body.status,now(),errorCode,build,body.id,d.id);
+          run('UPDATE devices SET last_seen=? WHERE id=?',now(),d.id);
           send(200,{ok:true});return;
         }
         throw fail('Không tìm thấy',404);
@@ -185,7 +191,7 @@ export function createApp({ dbPath = path.join(root, 'data', 'feeder.sqlite'), n
       }
       if(p==='/api/state'&&method==='GET') {
         expire();const devices=all('SELECT id,name,last_seen,run_ms,stop_us,run_us,portions,portion_ms,config_version,applied_config_version,config_synced_at,config_error,diagnostics_json,firmware_protocol,servo_mode,closed_angle,open_angle,move_ms FROM devices WHERE user_id=?',u.id).map(d=>({...d,diagnostics:d.diagnostics_json?JSON.parse(d.diagnostics_json):null,diagnostics_json:undefined,config_synced:d.firmware_protocol===4&&d.applied_config_version===d.config_version&&!d.config_error,online:online(d),schedules:all('SELECT * FROM schedules WHERE device_id=? ORDER BY time',d.id).map(s=>({...s,days:JSON.parse(s.days)}))}));
-        const events=all('SELECT c.id,c.device_id,d.name,c.source,c.status,c.created,c.finished,c.run_ms,c.portions,c.portion_ms,c.servo_mode,c.closed_angle,c.open_angle,c.move_ms FROM commands c JOIN devices d ON d.id=c.device_id WHERE d.user_id=? ORDER BY c.id DESC LIMIT 50',u.id);
+        const events=all('SELECT c.id,c.device_id,d.name,c.source,c.status,c.error_code,c.firmware_build,c.created,c.finished,c.run_ms,c.portions,c.portion_ms,c.servo_mode,c.closed_angle,c.open_angle,c.move_ms FROM commands c JOIN devices d ON d.id=c.device_id WHERE d.user_id=? ORDER BY c.id DESC LIMIT 50',u.id);
         send(200,{user:u,devices,events});return;
       }
       if(p==='/api/devices'&&method==='POST') {
